@@ -21,23 +21,22 @@ class ODCMemory(nn.Module):
         min_cluster (int): Minimal cluster size.
     """
 
-    def __init__(self, length, feat_dim, momentum, num_classes, min_cluster,
-                 **kwargs):
+    def __init__(self, length, feat_dim, momentum, num_classes, min_cluster, **kwargs):
         super(ODCMemory, self).__init__()
         self.rank, self.num_replicas = get_dist_info()
         if self.rank == 0:
-            self.feature_bank = torch.zeros((length, feat_dim),
-                                            dtype=torch.float32)
-        self.label_bank = torch.zeros((length, ), dtype=torch.long)
-        self.centroids = torch.zeros((num_classes, feat_dim),
-                                     dtype=torch.float32).cuda()
+            self.feature_bank = torch.zeros((length, feat_dim), dtype=torch.float32)
+        self.label_bank = torch.zeros((length,), dtype=torch.long)
+        self.centroids = torch.zeros(
+            (num_classes, feat_dim), dtype=torch.float32
+        ).cuda()
         self.kmeans = KMeans(n_clusters=2, random_state=0, max_iter=20)
         self.feat_dim = feat_dim
         self.initialized = False
         self.momentum = momentum
         self.num_classes = num_classes
         self.min_cluster = min_cluster
-        self.debug = kwargs.get('debug', False)
+        self.debug = kwargs.get("debug", False)
 
     def init_memory(self, feature, label):
         """Initialize memory modules."""
@@ -46,7 +45,7 @@ class ODCMemory(nn.Module):
         # make sure no empty clusters
         assert (np.bincount(label, minlength=self.num_classes) != 0).all()
         if self.rank == 0:
-            feature /= (np.linalg.norm(feature, axis=1).reshape(-1, 1) + 1e-10)
+            feature /= np.linalg.norm(feature, axis=1).reshape(-1, 1) + 1e-10
             self.feature_bank.copy_(torch.from_numpy(feature))
             centroids = self._compute_centroids()
             self.centroids.copy_(centroids)
@@ -86,9 +85,7 @@ class ODCMemory(nn.Module):
         # if not hasattr(self, 'feature_gathered'):
         #    self.feature_gathered = [torch.ones_like(feature).cuda()
         #                             for _ in range(self.num_replicas)]
-        ind_gathered = [
-            torch.ones_like(ind).cuda() for _ in range(self.num_replicas)
-        ]
+        ind_gathered = [torch.ones_like(ind).cuda() for _ in range(self.num_replicas)]
         feature_gathered = [
             torch.ones_like(feature).cuda() for _ in range(self.num_replicas)
         ]
@@ -101,28 +98,29 @@ class ODCMemory(nn.Module):
     def update_samples_memory(self, ind, feature):
         """Update samples memory."""
         assert self.initialized
-        feature_norm = feature / (feature.norm(dim=1).view(-1, 1) + 1e-10
-                                  )  # normalize
+        feature_norm = feature / (feature.norm(dim=1).view(-1, 1) + 1e-10)  # normalize
         ind, feature_norm = self._gather(
-            ind, feature_norm)  # ind: (N*w), feature: (N*w)xk, cuda tensor
+            ind, feature_norm
+        )  # ind: (N*w), feature: (N*w)xk, cuda tensor
         ind = ind.cpu()
         if self.rank == 0:
             feature_old = self.feature_bank[ind, ...].cuda()
-            feature_new = (1 - self.momentum) * feature_old + \
-                self.momentum * feature_norm
-            feature_norm = feature_new / (
-                feature_new.norm(dim=1).view(-1, 1) + 1e-10)
+            feature_new = (
+                1 - self.momentum
+            ) * feature_old + self.momentum * feature_norm
+            feature_norm = feature_new / (feature_new.norm(dim=1).view(-1, 1) + 1e-10)
             self.feature_bank[ind, ...] = feature_norm.cpu()
         dist.barrier()
         dist.broadcast(feature_norm, 0)
         # compute new labels
-        similarity_to_centroids = torch.mm(self.centroids,
-                                           feature_norm.permute(1, 0))  # CxN
+        similarity_to_centroids = torch.mm(
+            self.centroids, feature_norm.permute(1, 0)
+        )  # CxN
         newlabel = similarity_to_centroids.argmax(dim=0)  # cuda tensor
         newlabel_cpu = newlabel.cpu()
-        change_ratio = (newlabel_cpu !=
-            self.label_bank[ind]).sum().float().cuda() \
-            / float(newlabel_cpu.shape[0])
+        change_ratio = (
+            newlabel_cpu != self.label_bank[ind]
+        ).sum().float().cuda() / float(newlabel_cpu.shape[0])
         self.label_bank[ind] = newlabel_cpu.clone()  # copy to cpu
         return change_ratio
 
@@ -132,8 +130,11 @@ class ODCMemory(nn.Module):
         hist = np.bincount(self.label_bank.numpy(), minlength=self.num_classes)
         small_clusters = np.where(hist < self.min_cluster)[0].tolist()
         if self.debug and self.rank == 0:
-            print("mincluster: {}, num of small class: {}".format(
-                hist.min(), len(small_clusters)))
+            print(
+                "mincluster: {}, num of small class: {}".format(
+                    hist.min(), len(small_clusters)
+                )
+            )
         if len(small_clusters) == 0:
             return
         # re-assign samples in small clusters to make them empty
@@ -144,16 +145,17 @@ class ODCMemory(nn.Module):
                     np.setdiff1d(
                         np.arange(self.num_classes),
                         np.array(small_clusters),
-                        assume_unique=True)).cuda()
+                        assume_unique=True,
+                    )
+                ).cuda()
                 if self.rank == 0:
                     target_ind = torch.mm(
                         self.centroids[inclusion, :],
-                        self.feature_bank[ind, :].cuda().permute(
-                            1, 0)).argmax(dim=0)
+                        self.feature_bank[ind, :].cuda().permute(1, 0),
+                    ).argmax(dim=0)
                     target = inclusion[target_ind]
                 else:
-                    target = torch.zeros((ind.shape[0], ),
-                                         dtype=torch.int64).cuda()
+                    target = torch.zeros((ind.shape[0],), dtype=torch.int64).cuda()
                 dist.all_reduce(target)
                 self.label_bank[ind] = torch.from_numpy(target.cpu().numpy())
         # deal with empty cluster
@@ -169,8 +171,7 @@ class ODCMemory(nn.Module):
                 self.centroids.copy_(center)
             else:
                 center = self._compute_centroids_ind(cinds)
-                self.centroids[
-                    torch.LongTensor(cinds).cuda(), :] = center.cuda()
+                self.centroids[torch.LongTensor(cinds).cuda(), :] = center.cuda()
         dist.broadcast(self.centroids, 0)
 
     def _partition_max_cluster(self, max_cluster):
@@ -186,31 +187,37 @@ class ODCMemory(nn.Module):
         sub_cluster1_ind = max_cluster_inds[kmeans_ret.labels_ == 0]
         sub_cluster2_ind = max_cluster_inds[kmeans_ret.labels_ == 1]
         if not (len(sub_cluster1_ind) > 0 and len(sub_cluster2_ind) > 0):
-            print(
-                "Warning: kmeans partition fails, resort to random partition.")
+            print("Warning: kmeans partition fails, resort to random partition.")
             sub_cluster1_ind = np.random.choice(
-                max_cluster_inds, len(max_cluster_inds) // 2, replace=False)
+                max_cluster_inds, len(max_cluster_inds) // 2, replace=False
+            )
             sub_cluster2_ind = np.setdiff1d(
-                max_cluster_inds, sub_cluster1_ind, assume_unique=True)
+                max_cluster_inds, sub_cluster1_ind, assume_unique=True
+            )
         return sub_cluster1_ind, sub_cluster2_ind
 
     def _redirect_empty_clusters(self, empty_clusters):
         """Re-direct empty clusters."""
         for e in empty_clusters:
-            assert (self.label_bank != e).all().item(), \
-                "Cluster #{} is not an empty cluster.".format(e)
-            max_cluster = np.bincount(
-                self.label_bank, minlength=self.num_classes).argmax().item()
+            assert (
+                (self.label_bank != e).all().item()
+            ), "Cluster #{} is not an empty cluster.".format(e)
+            max_cluster = (
+                np.bincount(self.label_bank, minlength=self.num_classes).argmax().item()
+            )
             # gather partitioning indices
             if self.rank == 0:
                 sub_cluster1_ind, sub_cluster2_ind = self._partition_max_cluster(
-                    max_cluster)
+                    max_cluster
+                )
                 size1 = torch.LongTensor([len(sub_cluster1_ind)]).cuda()
                 size2 = torch.LongTensor([len(sub_cluster2_ind)]).cuda()
-                sub_cluster1_ind_tensor = torch.from_numpy(
-                    sub_cluster1_ind).long().cuda()
-                sub_cluster2_ind_tensor = torch.from_numpy(
-                    sub_cluster2_ind).long().cuda()
+                sub_cluster1_ind_tensor = (
+                    torch.from_numpy(sub_cluster1_ind).long().cuda()
+                )
+                sub_cluster2_ind_tensor = (
+                    torch.from_numpy(sub_cluster2_ind).long().cuda()
+                )
             else:
                 size1 = torch.LongTensor([0]).cuda()
                 size2 = torch.LongTensor([0]).cuda()
@@ -218,9 +225,11 @@ class ODCMemory(nn.Module):
             dist.all_reduce(size2)
             if self.rank != 0:
                 sub_cluster1_ind_tensor = torch.zeros(
-                    (size1, ), dtype=torch.int64).cuda()
+                    (size1,), dtype=torch.int64
+                ).cuda()
                 sub_cluster2_ind_tensor = torch.zeros(
-                    (size2, ), dtype=torch.int64).cuda()
+                    (size2,), dtype=torch.int64
+                ).cuda()
             dist.broadcast(sub_cluster1_ind_tensor, 0)
             dist.broadcast(sub_cluster2_ind_tensor, 0)
             if self.rank != 0:

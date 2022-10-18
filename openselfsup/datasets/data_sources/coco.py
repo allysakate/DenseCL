@@ -8,9 +8,8 @@ from .utils import McLoader
 
 @DATASOURCES.register_module
 class COCO(object):
-
     def __init__(self, root, list_file=None, memcached=False, mclient_path=None):
-        self.fns = glob.glob(root + '/*g')
+        self.fns = glob.glob(root + "/*g")
         self.memcached = memcached
         self.mclient_path = mclient_path
         self.initialized = False
@@ -31,5 +30,5 @@ class COCO(object):
             img = self.mc_loader(self.fns[idx])
         else:
             img = Image.open(self.fns[idx])
-        img = img.convert('RGB')
+        img = img.convert("RGB")
         return img

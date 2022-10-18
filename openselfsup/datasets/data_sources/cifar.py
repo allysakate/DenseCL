@@ -9,19 +9,28 @@ from ..registry import DATASOURCES
 class Cifar10(object):
 
     CLASSES = [
-        'airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog',
-        'horse', 'ship', 'truck'
+        "airplane",
+        "automobile",
+        "bird",
+        "cat",
+        "deer",
+        "dog",
+        "frog",
+        "horse",
+        "ship",
+        "truck",
     ]
 
     def __init__(self, root, split):
-        assert split in ['train', 'test']
+        assert split in ["train", "test"]
         try:
-            self.cifar = CIFAR10(
-                root=root, train=split == 'train', download=False)
+            self.cifar = CIFAR10(root=root, train=split == "train", download=False)
         except:
-            raise Exception("Please download CIFAR10 manually, \
+            raise Exception(
+                "Please download CIFAR10 manually, \
                   in case of downloading the dataset parallelly \
-                  that may corrupt the dataset.")
+                  that may corrupt the dataset."
+            )
         self.labels = self.cifar.targets
 
     def get_length(self):
@@ -39,14 +48,15 @@ class Cifar100(object):
     CLASSES = None
 
     def __init__(self, root, split):
-        assert split in ['train', 'test']
+        assert split in ["train", "test"]
         try:
-            self.cifar = CIFAR100(
-                root=root, train=spilt == 'train', download=False)
+            self.cifar = CIFAR100(root=root, train=split == "train", download=False)
         except:
-            raise Exception("Please download CIFAR10 manually, \
+            raise Exception(
+                "Please download CIFAR10 manually, \
                   in case of downloading the dataset parallelly \
-                  that may corrupt the dataset.")
+                  that may corrupt the dataset."
+            )
         self.labels = self.cifar.targets
 
     def get_sample(self, idx):

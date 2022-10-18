@@ -12,16 +12,18 @@ from ..utils import build_conv_layer, build_norm_layer
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self,
-                 inplanes,
-                 planes,
-                 stride=1,
-                 dilation=1,
-                 downsample=None,
-                 style='pytorch',
-                 with_cp=False,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN')):
+    def __init__(
+        self,
+        inplanes,
+        planes,
+        stride=1,
+        dilation=1,
+        downsample=None,
+        style="pytorch",
+        with_cp=False,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+    ):
         super(BasicBlock, self).__init__()
 
         self.norm1_name, norm1 = build_norm_layer(norm_cfg, planes, postfix=1)
@@ -35,10 +37,12 @@ class BasicBlock(nn.Module):
             stride=stride,
             padding=dilation,
             dilation=dilation,
-            bias=False)
+            bias=False,
+        )
         self.add_module(self.norm1_name, norm1)
         self.conv2 = build_conv_layer(
-            conv_cfg, planes, planes, 3, padding=1, bias=False)
+            conv_cfg, planes, planes, 3, padding=1, bias=False
+        )
         self.add_module(self.norm2_name, norm2)
 
         self.relu = nn.ReLU(inplace=True)
@@ -77,22 +81,24 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self,
-                 inplanes,
-                 planes,
-                 stride=1,
-                 dilation=1,
-                 downsample=None,
-                 style='pytorch',
-                 with_cp=False,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN')):
+    def __init__(
+        self,
+        inplanes,
+        planes,
+        stride=1,
+        dilation=1,
+        downsample=None,
+        style="pytorch",
+        with_cp=False,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN"),
+    ):
         """Bottleneck block for ResNet.
         If style is "pytorch", the stride-two layer is the 3x3 conv layer,
         if it is "caffe", the stride-two layer is the first 1x1 conv layer.
         """
         super(Bottleneck, self).__init__()
-        assert style in ['pytorch', 'caffe']
+        assert style in ["pytorch", "caffe"]
 
         self.inplanes = inplanes
         self.planes = planes
@@ -103,7 +109,7 @@ class Bottleneck(nn.Module):
         self.conv_cfg = conv_cfg
         self.norm_cfg = norm_cfg
 
-        if self.style == 'pytorch':
+        if self.style == "pytorch":
             self.conv1_stride = 1
             self.conv2_stride = stride
         else:
@@ -113,7 +119,8 @@ class Bottleneck(nn.Module):
         self.norm1_name, norm1 = build_norm_layer(norm_cfg, planes, postfix=1)
         self.norm2_name, norm2 = build_norm_layer(norm_cfg, planes, postfix=2)
         self.norm3_name, norm3 = build_norm_layer(
-            norm_cfg, planes * self.expansion, postfix=3)
+            norm_cfg, planes * self.expansion, postfix=3
+        )
 
         self.conv1 = build_conv_layer(
             conv_cfg,
@@ -121,7 +128,8 @@ class Bottleneck(nn.Module):
             planes,
             kernel_size=1,
             stride=self.conv1_stride,
-            bias=False)
+            bias=False,
+        )
         self.add_module(self.norm1_name, norm1)
         self.conv2 = build_conv_layer(
             conv_cfg,
@@ -131,14 +139,12 @@ class Bottleneck(nn.Module):
             stride=self.conv2_stride,
             padding=dilation,
             dilation=dilation,
-            bias=False)
+            bias=False,
+        )
         self.add_module(self.norm2_name, norm2)
         self.conv3 = build_conv_layer(
-            conv_cfg,
-            planes,
-            planes * self.expansion,
-            kernel_size=1,
-            bias=False)
+            conv_cfg, planes, planes * self.expansion, kernel_size=1, bias=False
+        )
         self.add_module(self.norm3_name, norm3)
 
         self.relu = nn.ReLU(inplace=True)
@@ -157,7 +163,6 @@ class Bottleneck(nn.Module):
         return getattr(self, self.norm3_name)
 
     def forward(self, x):
-
         def _inner_forward(x):
             identity = x
 
@@ -189,16 +194,18 @@ class Bottleneck(nn.Module):
         return out
 
 
-def make_res_layer(block,
-                   inplanes,
-                   planes,
-                   blocks,
-                   stride=1,
-                   dilation=1,
-                   style='pytorch',
-                   with_cp=False,
-                   conv_cfg=None,
-                   norm_cfg=dict(type='BN')):
+def make_res_layer(
+    block,
+    inplanes,
+    planes,
+    blocks,
+    stride=1,
+    dilation=1,
+    style="pytorch",
+    with_cp=False,
+    conv_cfg=None,
+    norm_cfg=dict(type="BN"),
+):
     downsample = None
     if stride != 1 or inplanes != planes * block.expansion:
         downsample = nn.Sequential(
@@ -208,7 +215,8 @@ def make_res_layer(block,
                 planes * block.expansion,
                 kernel_size=1,
                 stride=stride,
-                bias=False),
+                bias=False,
+            ),
             build_norm_layer(norm_cfg, planes * block.expansion)[1],
         )
 
@@ -223,7 +231,9 @@ def make_res_layer(block,
             style=style,
             with_cp=with_cp,
             conv_cfg=conv_cfg,
-            norm_cfg=norm_cfg))
+            norm_cfg=norm_cfg,
+        )
+    )
     inplanes = planes * block.expansion
     for i in range(1, blocks):
         layers.append(
@@ -235,7 +245,9 @@ def make_res_layer(block,
                 style=style,
                 with_cp=with_cp,
                 conv_cfg=conv_cfg,
-                norm_cfg=norm_cfg))
+                norm_cfg=norm_cfg,
+            )
+        )
 
     return nn.Sequential(*layers)
 
@@ -285,26 +297,28 @@ class ResNet(nn.Module):
         34: (BasicBlock, (3, 4, 6, 3)),
         50: (Bottleneck, (3, 4, 6, 3)),
         101: (Bottleneck, (3, 4, 23, 3)),
-        152: (Bottleneck, (3, 8, 36, 3))
+        152: (Bottleneck, (3, 8, 36, 3)),
     }
 
-    def __init__(self,
-                 depth,
-                 in_channels=3,
-                 num_stages=4,
-                 strides=(1, 2, 2, 2),
-                 dilations=(1, 1, 1, 1),
-                 out_indices=(0, 1, 2, 3, 4),
-                 style='pytorch',
-                 frozen_stages=-1,
-                 conv_cfg=None,
-                 norm_cfg=dict(type='BN', requires_grad=True),
-                 norm_eval=False,
-                 with_cp=False,
-                 zero_init_residual=False):
+    def __init__(
+        self,
+        depth,
+        in_channels=3,
+        num_stages=4,
+        strides=(1, 2, 2, 2),
+        dilations=(1, 1, 1, 1),
+        out_indices=(0, 1, 2, 3, 4),
+        style="pytorch",
+        frozen_stages=-1,
+        conv_cfg=None,
+        norm_cfg=dict(type="BN", requires_grad=True),
+        norm_eval=False,
+        with_cp=False,
+        zero_init_residual=False,
+    ):
         super(ResNet, self).__init__()
         if depth not in self.arch_settings:
-            raise KeyError('invalid depth {} for resnet'.format(depth))
+            raise KeyError("invalid depth {} for resnet".format(depth))
         self.depth = depth
         self.num_stages = num_stages
         assert num_stages >= 1 and num_stages <= 4
@@ -341,16 +355,16 @@ class ResNet(nn.Module):
                 style=self.style,
                 with_cp=with_cp,
                 conv_cfg=conv_cfg,
-                norm_cfg=norm_cfg)
+                norm_cfg=norm_cfg,
+            )
             self.inplanes = planes * self.block.expansion
-            layer_name = 'layer{}'.format(i + 1)
+            layer_name = "layer{}".format(i + 1)
             self.add_module(layer_name, res_layer)
             self.res_layers.append(layer_name)
 
         self._freeze_stages()
 
-        self.feat_dim = self.block.expansion * 64 * 2**(
-            len(self.stage_blocks) - 1)
+        self.feat_dim = self.block.expansion * 64 * 2 ** (len(self.stage_blocks) - 1)
 
     @property
     def norm1(self):
@@ -364,7 +378,8 @@ class ResNet(nn.Module):
             kernel_size=7,
             stride=2,
             padding=3,
-            bias=False)
+            bias=False,
+        )
         self.norm1_name, norm1 = build_norm_layer(self.norm_cfg, 64, postfix=1)
         self.add_module(self.norm1_name, norm1)
         self.relu = nn.ReLU(inplace=True)
@@ -378,7 +393,7 @@ class ResNet(nn.Module):
                     param.requires_grad = False
 
         for i in range(1, self.frozen_stages + 1):
-            m = getattr(self, 'layer{}'.format(i))
+            m = getattr(self, "layer{}".format(i))
             m.eval()
             for param in m.parameters():
                 param.requires_grad = False
@@ -390,7 +405,7 @@ class ResNet(nn.Module):
         elif pretrained is None:
             for m in self.modules():
                 if isinstance(m, nn.Conv2d):
-                    kaiming_init(m, mode='fan_in', nonlinearity='relu')
+                    kaiming_init(m, mode="fan_in", nonlinearity="relu")
                 elif isinstance(m, (_BatchNorm, nn.GroupNorm)):
                     constant_init(m, 1)
 
@@ -401,7 +416,7 @@ class ResNet(nn.Module):
                     elif isinstance(m, BasicBlock):
                         constant_init(m.norm2, 0)
         else:
-            raise TypeError('pretrained must be a str or None')
+            raise TypeError("pretrained must be a str or None")
 
     def forward(self, x):
         outs = []

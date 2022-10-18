@@ -30,19 +30,20 @@ class DeepClusterHook(Hook):
     """
 
     def __init__(
-            self,
-            extractor,
-            clustering,
-            unif_sampling,
-            reweight,
-            reweight_pow,
-            init_memory=False,  # for ODC
-            initial=True,
-            interval=1,
-            dist_mode=True,
-            data_loaders=None):
+        self,
+        extractor,
+        clustering,
+        unif_sampling,
+        reweight,
+        reweight_pow,
+        init_memory=False,  # for ODC
+        initial=True,
+        interval=1,
+        dist_mode=True,
+        data_loaders=None,
+    ):
         self.extractor = Extractor(dist_mode=dist_mode, **extractor)
-        self.clustering_type = clustering.pop('type')
+        self.clustering_type = clustering.pop("type")
         self.clustering_cfg = clustering
         self.unif_sampling = unif_sampling
         self.reweight = reweight
@@ -71,18 +72,19 @@ class DeepClusterHook(Hook):
         # step 2: get labels
         if not self.dist_mode or (self.dist_mode and runner.rank == 0):
             clustering_algo = _clustering.__dict__[self.clustering_type](
-                **self.clustering_cfg)
+                **self.clustering_cfg
+            )
             # Features are normalized during clustering
             clustering_algo.cluster(features, verbose=True)
             assert isinstance(clustering_algo.labels, np.ndarray)
             new_labels = clustering_algo.labels.astype(np.int64)
             np.save(
-                "{}/cluster_epoch_{}.npy".format(runner.work_dir,
-                                                 runner.epoch), new_labels)
+                "{}/cluster_epoch_{}.npy".format(runner.work_dir, runner.epoch),
+                new_labels,
+            )
             self.evaluate(runner, new_labels)
         else:
-            new_labels = np.zeros((len(self.data_loaders[0].dataset), ),
-                                  dtype=np.int64)
+            new_labels = np.zeros((len(self.data_loaders[0].dataset),), dtype=np.int64)
 
         if self.dist_mode:
             new_labels_tensor = torch.from_numpy(new_labels).cuda()
@@ -96,14 +98,15 @@ class DeepClusterHook(Hook):
         # step 4 (a): set uniform sampler
         if self.unif_sampling:
             self.data_loaders[0].sampler.set_uniform_indices(
-                new_labels_list, self.clustering_cfg.k)
+                new_labels_list, self.clustering_cfg.k
+            )
 
         # step 4 (b): set loss reweight
         if self.reweight:
             runner.model.module.set_reweight(new_labels, self.reweight_pow)
 
         # step 5: randomize classifier
-        runner.model.module.head.init_weights(init_linear='normal')
+        runner.model.module.head.init_weights(init_linear="normal")
         if self.dist_mode:
             for p in runner.model.module.head.state_dict().values():
                 dist.broadcast(p, 0)
@@ -119,6 +122,7 @@ class DeepClusterHook(Hook):
         if runner.rank == 0:
             print_log(
                 "empty_num: {}\tmin_cluster: {}\tmax_cluster:{}".format(
-                    empty_cls.item(), minimal_cls_size.item(),
-                    maximal_cls_size.item()),
-                logger='root')
+                    empty_cls.item(), minimal_cls_size.item(), maximal_cls_size.item()
+                ),
+                logger="root",
+            )

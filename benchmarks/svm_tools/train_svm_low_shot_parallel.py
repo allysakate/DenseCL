@@ -33,31 +33,30 @@ import pdb
 
 
 def task(cls, cost, opts, features, targets):
-    suffix = '_'.join(
-        opts.targets_data_file.split('/')[-1].split('.')[0].split('_')[-2:])
+    suffix = "_".join(
+        opts.targets_data_file.split("/")[-1].split(".")[0].split("_")[-2:]
+    )
     out_file = svm_helper.get_low_shot_output_file(opts, cls, cost, suffix)
     if not os.path.exists(out_file):
         clf = LinearSVC(
             C=cost,
-            class_weight={
-                1: 2,
-                -1: 1
-            },
+            class_weight={1: 2, -1: 1},
             intercept_scaling=1.0,
             verbose=0,
-            penalty='l2',
-            loss='squared_hinge',
+            penalty="l2",
+            loss="squared_hinge",
             tol=0.0001,
             dual=True,
             max_iter=2000,
         )
         train_feats, train_cls_labels = svm_helper.get_cls_feats_labels(
-            cls, features, targets, opts.dataset)
+            cls, features, targets, opts.dataset
+        )
         clf.fit(train_feats, train_cls_labels)
-        #cls_labels = targets[:, cls].astype(dtype=np.int32, copy=True)
-        #cls_labels[np.where(cls_labels == 0)] = -1
-        #clf.fit(features, cls_labels)
-        with open(out_file, 'wb') as fwrite:
+        # cls_labels = targets[:, cls].astype(dtype=np.int32, copy=True)
+        # cls_labels[np.where(cls_labels == 0)] = -1
+        # clf.fit(features, cls_labels)
+        with open(out_file, "wb") as fwrite:
             pickle.dump(clf, fwrite)
     return 0
 
@@ -71,8 +70,9 @@ def train_svm_low_shot(opts):
     if not os.path.exists(opts.output_path):
         os.makedirs(opts.output_path)
 
-    features, targets = svm_helper.load_input_data(opts.data_file,
-                                                   opts.targets_data_file)
+    features, targets = svm_helper.load_input_data(
+        opts.data_file, opts.targets_data_file
+    )
     # normalize the features: N x 9216 (example shape)
     features = svm_helper.normalize_features(features)
 
@@ -80,8 +80,7 @@ def train_svm_low_shot(opts):
     costs_list = svm_helper.parse_cost_list(opts.costs_list)
 
     # classes for which SVM testing should be done
-    num_classes, cls_list = svm_helper.get_low_shot_svm_classes(
-        targets, opts.dataset)
+    num_classes, cls_list = svm_helper.get_low_shot_svm_classes(targets, opts.dataset)
 
     num_task = len(cls_list) * len(costs_list)
     args_cls = []
@@ -96,43 +95,47 @@ def train_svm_low_shot(opts):
 
     pool = mp.Pool(mp.cpu_count())
     for _ in tqdm.tqdm(
-            pool.imap_unordered(
-                mp_helper,
-                zip(args_cls, args_cost, args_opts, args_features,
-                    args_targets)),
-            total=num_task):
+        pool.imap_unordered(
+            mp_helper, zip(args_cls, args_cost, args_opts, args_features, args_targets)
+        ),
+        total=num_task,
+    ):
         pass
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Low-shot SVM model training')
+    parser = argparse.ArgumentParser(description="Low-shot SVM model training")
     parser.add_argument(
-        '--data_file',
+        "--data_file",
         type=str,
         default=None,
-        help="Numpy file containing image features")
+        help="Numpy file containing image features",
+    )
     parser.add_argument(
-        '--targets_data_file',
+        "--targets_data_file",
         type=str,
         default=None,
-        help="Numpy file containing image labels")
+        help="Numpy file containing image labels",
+    )
     parser.add_argument(
-        '--costs_list',
+        "--costs_list",
         type=str,
         default="0.01,0.1",
-        help="comma separated string containing list of costs")
+        help="comma separated string containing list of costs",
+    )
     parser.add_argument(
-        '--output_path',
+        "--output_path",
         type=str,
         default=None,
-        help="path where to save the trained SVM models")
+        help="path where to save the trained SVM models",
+    )
     parser.add_argument(
-        '--random_seed',
+        "--random_seed",
         type=int,
         default=100,
-        help="random seed for SVM classifier training")
-    parser.add_argument(
-        '--dataset', type=str, default="voc", help='voc | places')
+        help="random seed for SVM classifier training",
+    )
+    parser.add_argument("--dataset", type=str, default="voc", help="voc | places")
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
@@ -141,5 +144,5 @@ def main():
     train_svm_low_shot(opts)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

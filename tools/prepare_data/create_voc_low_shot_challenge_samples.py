@@ -22,15 +22,16 @@ import random
 import sys
 
 # create the logger
-FORMAT = '[%(levelname)s: %(filename)s: %(lineno)4d]: %(message)s'
+FORMAT = "[%(levelname)s: %(filename)s: %(lineno)4d]: %(message)s"
 logging.basicConfig(level=logging.INFO, format=FORMAT, stream=sys.stdout)
 logger = logging.getLogger(__name__)
 
 
 def load_json(file_path, ground_truth=True):
     import json
+
     assert os.path.exists(file_path), "{} does not exist".format(file_path)
-    with open(file_path, 'r') as fp:
+    with open(file_path, "r") as fp:
         data = json.load(fp)
     img_ids = sorted(list(data.keys()))
     cls_names = sorted(list(data[img_ids[0]].keys()))
@@ -53,13 +54,13 @@ def save_json(input_data, img_ids, cls_names, output_file):
             name = cls_names[cls_idx]
             out_lbl[name] = int(input_data[img_idx][cls_idx])
         output_dict[img_id] = out_lbl
-    logger.info('Saving file: {}'.format(output_file))
-    with open(output_file, 'w') as fp:
+    logger.info("Saving file: {}".format(output_file))
+    with open(output_file, "w") as fp:
         json.dump(output_dict, fp)
 
 
 def sample_symbol(input_targets, output_target, symbol, num):
-    logger.info('Sampling symbol: {} for num: {}'.format(symbol, num))
+    logger.info("Sampling symbol: {} for num: {}".format(symbol, num))
     num_classes = input_targets.shape[1]
     for idx in range(num_classes):
         symbol_data = np.where(input_targets[:, idx] == symbol)[0]
@@ -79,46 +80,46 @@ def generate_independent_sample(opts, targets, img_ids, cls_names):
     num_classes = targets.shape[1]
     for idx in range(opts.num_samples):
         for k in k_values:
-            logger.info('Sampling: {} time for k-value: {}'.format(idx + 1, k))
+            logger.info("Sampling: {} time for k-value: {}".format(idx + 1, k))
             output = np.ones(targets.shape, dtype=np.int32) * -1
             output = sample_symbol(targets, output, 1, k)
             output = sample_symbol(targets, output, 0, (num_classes - 1) * k)
-            prefix = opts.targets_data_file.split('/')[-1].split('.')[0]
+            prefix = opts.targets_data_file.split("/")[-1].split(".")[0]
             output_file = os.path.join(
-                opts.output_path,
-                '{}_sample{}_k{}.json'.format(prefix, idx + 1, k))
+                opts.output_path, "{}_sample{}_k{}.json".format(prefix, idx + 1, k)
+            )
             save_json(output, img_ids, cls_names, output_file)
             npy_output_file = os.path.join(
-                opts.output_path,
-                '{}_sample{}_k{}.npy'.format(prefix, idx + 1, k))
-            logger.info('Saving npy file: {}'.format(npy_output_file))
+                opts.output_path, "{}_sample{}_k{}.npy".format(prefix, idx + 1, k)
+            )
+            logger.info("Saving npy file: {}".format(npy_output_file))
             np.save(npy_output_file, output)
-    logger.info('Done!!')
+    logger.info("Done!!")
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Sample Low shot data for VOC')
+    parser = argparse.ArgumentParser(description="Sample Low shot data for VOC")
     parser.add_argument(
-        '--targets_data_file',
+        "--targets_data_file",
         type=str,
         default=None,
-        help="Json file containing image labels")
+        help="Json file containing image labels",
+    )
     parser.add_argument(
-        '--output_path',
+        "--output_path",
         type=str,
         default=None,
-        help="path where low-shot samples should be saved")
+        help="path where low-shot samples should be saved",
+    )
     parser.add_argument(
-        '--k_values',
+        "--k_values",
         type=str,
         default="1,2,4,8,16,32,64,96",
-        help="Low-shot k-values for svm testing.")
+        help="Low-shot k-values for svm testing.",
+    )
     parser.add_argument(
-        '--num_samples',
-        type=int,
-        default=5,
-        help="Number of independent samples.")
+        "--num_samples", type=int, default=5, help="Number of independent samples."
+    )
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
@@ -127,5 +128,5 @@ def main():
     generate_independent_sample(opts, targets, img_ids, cls_names)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

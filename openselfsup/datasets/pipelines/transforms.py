@@ -11,18 +11,18 @@ from openselfsup.utils import build_from_cfg
 from ..registry import PIPELINES
 
 # register all existing transforms in torchvision
-_EXCLUDED_TRANSFORMS = ['GaussianBlur']
+_EXCLUDED_TRANSFORMS = ["GaussianBlur"]
 for m in inspect.getmembers(_transforms, inspect.isclass):
     if m[0] not in _EXCLUDED_TRANSFORMS:
         PIPELINES.register_module(m[1])
 
 _pil_interpolation_to_str = {
-    Image.NEAREST: 'PIL.Image.NEAREST',
-    Image.BILINEAR: 'PIL.Image.BILINEAR',
-    Image.BICUBIC: 'PIL.Image.BICUBIC',
-    Image.LANCZOS: 'PIL.Image.LANCZOS',
-    Image.HAMMING: 'PIL.Image.HAMMING',
-    Image.BOX: 'PIL.Image.BOX',
+    Image.NEAREST: "PIL.Image.NEAREST",
+    Image.BILINEAR: "PIL.Image.BILINEAR",
+    Image.BICUBIC: "PIL.Image.BICUBIC",
+    Image.LANCZOS: "PIL.Image.LANCZOS",
+    Image.HAMMING: "PIL.Image.HAMMING",
+    Image.BOX: "PIL.Image.BOX",
 }
 
 
@@ -53,32 +53,37 @@ class Lighting(object):
     """Lighting noise(AlexNet - style PCA - based noise)."""
 
     _IMAGENET_PCA = {
-        'eigval':
-        torch.Tensor([0.2175, 0.0188, 0.0045]),
-        'eigvec':
-        torch.Tensor([
-            [-0.5675, 0.7192, 0.4009],
-            [-0.5808, -0.0045, -0.8140],
-            [-0.5836, -0.6948, 0.4203],
-        ])
+        "eigval": torch.Tensor([0.2175, 0.0188, 0.0045]),
+        "eigvec": torch.Tensor(
+            [
+                [-0.5675, 0.7192, 0.4009],
+                [-0.5808, -0.0045, -0.8140],
+                [-0.5836, -0.6948, 0.4203],
+            ]
+        ),
     }
 
     def __init__(self):
         self.alphastd = 0.1
-        self.eigval = self._IMAGENET_PCA['eigval']
-        self.eigvec = self._IMAGENET_PCA['eigvec']
+        self.eigval = self._IMAGENET_PCA["eigval"]
+        self.eigvec = self._IMAGENET_PCA["eigvec"]
 
     def __call__(self, img):
-        assert isinstance(img, torch.Tensor), \
-            "Expect torch.Tensor, got {}".format(type(img))
+        assert isinstance(img, torch.Tensor), "Expect torch.Tensor, got {}".format(
+            type(img)
+        )
         if self.alphastd == 0:
             return img
 
         alpha = img.new().resize_(3).normal_(0, self.alphastd)
-        rgb = self.eigvec.type_as(img).clone()\
-            .mul(alpha.view(1, 3).expand(3, 3))\
-            .mul(self.eigval.view(1, 3).expand(3, 3))\
-            .sum(1).squeeze()
+        rgb = (
+            self.eigvec.type_as(img)
+            .clone()
+            .mul(alpha.view(1, 3).expand(3, 3))
+            .mul(self.eigval.view(1, 3).expand(3, 3))
+            .sum(1)
+            .squeeze()
+        )
 
         return img.add(rgb.view(3, 1, 1).expand_as(img))
 
@@ -114,7 +119,7 @@ class Solarization(object):
 
     def __call__(self, img):
         img = np.array(img)
-        img = np.where(img < self.threshold, img, 255 -img)
+        img = np.where(img < self.threshold, img, 255 - img)
         return Image.fromarray(img.astype(np.uint8))
 
     def __repr__(self):

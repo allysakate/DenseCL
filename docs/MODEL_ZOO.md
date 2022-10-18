@@ -168,5 +168,3 @@
 <tr><td><a href="https://arxiv.org/abs/2002.05709">SimCLR</a></td><td>selfsup/simclr/r50_bs256_ep200.py</td><td>default</td><td>59.1</td><td>39.6</td><td>42.9</td><td>55.9</td><td>34.6</td><td>37.1</td></tr>
 <tr><td><a href="https://arxiv.org/abs/2006.07733">BYOL</a></td><td>selfsup/byol/r50_bs4096_ep200.py</td><td>default</td><td>60.5</td><td>40.3</td><td>43.9</td><td>56.8</td><td>35.1</td><td>37.3</td></tr>
 </tbody></table>
-
-

@@ -26,12 +26,9 @@ class DeepCluster(nn.Module):
         pretrained (str, optional): Path to pre-trained weights. Default: None.
     """
 
-    def __init__(self,
-                 backbone,
-                 with_sobel=False,
-                 neck=None,
-                 head=None,
-                 pretrained=None):
+    def __init__(
+        self, backbone, with_sobel=False, neck=None, head=None, pretrained=None
+    ):
         super(DeepCluster, self).__init__()
         self.with_sobel = with_sobel
         if with_sobel:
@@ -44,8 +41,7 @@ class DeepCluster(nn.Module):
 
         # reweight
         self.num_classes = head.num_classes
-        self.loss_weight = torch.ones((self.num_classes, ),
-                                      dtype=torch.float32).cuda()
+        self.loss_weight = torch.ones((self.num_classes,), dtype=torch.float32).cuda()
         self.loss_weight /= self.loss_weight.sum()
 
     def init_weights(self, pretrained=None):
@@ -56,10 +52,10 @@ class DeepCluster(nn.Module):
                 Default: None.
         """
         if pretrained is not None:
-            print_log('load model from: {}'.format(pretrained), logger='root')
+            print_log("load model from: {}".format(pretrained), logger="root")
         self.backbone.init_weights(pretrained=pretrained)
-        self.neck.init_weights(init_linear='kaiming')
-        self.head.init_weights(init_linear='normal')
+        self.neck.init_weights(init_linear="kaiming")
+        self.head.init_weights(init_linear="normal")
 
     def forward_backbone(self, img):
         """Forward backbone.
@@ -99,16 +95,16 @@ class DeepCluster(nn.Module):
     def forward_test(self, img, **kwargs):
         x = self.forward_backbone(img)  # tuple
         outs = self.head(x)
-        keys = ['head{}'.format(i) for i in range(len(outs))]
+        keys = ["head{}".format(i) for i in range(len(outs))]
         out_tensors = [out.cpu() for out in outs]  # NxC
         return dict(zip(keys, out_tensors))
 
-    def forward(self, img, mode='train', **kwargs):
-        if mode == 'train':
+    def forward(self, img, mode="train", **kwargs):
+        if mode == "train":
             return self.forward_train(img, **kwargs)
-        elif mode == 'test':
+        elif mode == "test":
             return self.forward_test(img, **kwargs)
-        elif mode == 'extract':
+        elif mode == "extract":
             return self.forward_backbone(img)
         else:
             raise Exception("No such mode: {}".format(mode))
@@ -122,9 +118,8 @@ class DeepCluster(nn.Module):
             labels (numpy.ndarray): Label assignments.
             reweight_pow (float): The power of re-weighting. Default: 0.5.
         """
-        hist = np.bincount(
-            labels, minlength=self.num_classes).astype(np.float32)
-        inv_hist = (1. / (hist + 1e-10))**reweight_pow
+        hist = np.bincount(labels, minlength=self.num_classes).astype(np.float32)
+        inv_hist = (1.0 / (hist + 1e-10)) ** reweight_pow
         weight = inv_hist / inv_hist.sum()
         self.loss_weight.copy_(torch.from_numpy(weight))
         self.head.criterion = nn.CrossEntropyLoss(weight=self.loss_weight)

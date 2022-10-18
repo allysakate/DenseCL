@@ -16,14 +16,14 @@ We use [detectron2](https://github.com/facebookresearch/detectron2/blob/master/I
    WEIGHT_FILE=../../work_dirs/selfsup/densecl/densecl_coco_800ep/extracted_densecl_coco_800ep.pth
    OUTPUT_FILE=extracted_densecl_coco_800ep.pkl
    python convert-pretrain-to-detectron2.py ${WEIGHT_FILE} ${OUTPUT_FILE}
-   ```  
+   ```
 
 1. Start training:
    ```
    DET_CFG=configs/pascal_voc_R_50_C4_24k_moco.yaml
    bash run.sh ${DET_CFG} ${OUTPUT_FILE} output/run_1_voc_R_50_C4_24k_densecl_coco_800ep
    ```
-         
+
 ## Transferring to Semantic Segmentation
 
 We use [mmsegmentation](https://github.com/open-mmlab/mmsegmentation) to train the semantic segmentation models.

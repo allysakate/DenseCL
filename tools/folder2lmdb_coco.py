@@ -43,7 +43,7 @@ def loads_pyarrow(buf):
 
 
 def raw_reader(path):
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         bin_data = f.read()
     return bin_data
 
@@ -66,13 +66,18 @@ def folder2lmdb(infos, dpath, name="train2017", workers=32, write_frequency=1000
     isdir = os.path.isdir(lmdb_path)
 
     print("Generate LMDB to %s" % lmdb_path)
-    db = lmdb.open(lmdb_path, subdir=isdir,
-                   map_size=1099511627776 * 2, readonly=False,
-                   meminit=False, map_async=True)
+    db = lmdb.open(
+        lmdb_path,
+        subdir=isdir,
+        map_size=1099511627776 * 2,
+        readonly=False,
+        meminit=False,
+        map_async=True,
+    )
 
     txn = db.begin(write=True)
     for idx, image in enumerate(data_loader):
-        txn.put(u'{}'.format(idx).encode('ascii'), dumps_pyarrow(image[0]))
+        txn.put("{}".format(idx).encode("ascii"), dumps_pyarrow(image[0]))
         if idx % write_frequency == 0:
             print("[%d/%d]" % (idx, len(data_loader)))
             txn.commit()
@@ -80,10 +85,10 @@ def folder2lmdb(infos, dpath, name="train2017", workers=32, write_frequency=1000
 
     # finish iterating through dataset
     txn.commit()
-    keys = [u'{}'.format(k).encode('ascii') for k in range(idx + 1)]
+    keys = ["{}".format(k).encode("ascii") for k in range(idx + 1)]
     with db.begin(write=True) as txn:
-        txn.put(b'__keys__', dumps_pyarrow(keys))
-        txn.put(b'__len__', dumps_pyarrow(len(keys)))
+        txn.put(b"__keys__", dumps_pyarrow(keys))
+        txn.put(b"__len__", dumps_pyarrow(len(keys)))
 
     print("Flushing database ...")
     db.sync()
@@ -91,17 +96,20 @@ def folder2lmdb(infos, dpath, name="train2017", workers=32, write_frequency=1000
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='COCO Folder to LMDB.')
-    parser.add_argument('--data-root', type=str,
-                        default='/home/datasets/coco/',
-                        help='the name of data root.')
-    parser.add_argument('--ann-root', type=str,
-                        default='',
-                        help='the name of ann root.')
-    parser.add_argument('--data-type', type=str,
-                        default='train2017',
-                        help='the name of data type.')
-    parser.add_argument('--num-worker', type=int, default=64)
+    parser = argparse.ArgumentParser(description="COCO Folder to LMDB.")
+    parser.add_argument(
+        "--data-root",
+        type=str,
+        default="/home/datasets/coco/",
+        help="the name of data root.",
+    )
+    parser.add_argument(
+        "--ann-root", type=str, default="", help="the name of ann root."
+    )
+    parser.add_argument(
+        "--data-type", type=str, default="train2017", help="the name of data type."
+    )
+    parser.add_argument("--num-worker", type=int, default=64)
     args = parser.parse_args()
     return args
 
@@ -118,7 +126,7 @@ if __name__ == "__main__":
 
     annFile = osp.join(annRoot, "instances_{}.json".format(dataType))
     # load annotations.
-    with open(annFile, 'r') as f:
+    with open(annFile, "r") as f:
         annJson = json.load(f)
     # we only use the img id.
     infos = annJson["images"]

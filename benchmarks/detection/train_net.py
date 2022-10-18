@@ -5,13 +5,29 @@ import os
 
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
-from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, launch
-from detectron2.evaluation import COCOEvaluator, PascalVOCDetectionEvaluator, CityscapesInstanceEvaluator
+from detectron2.engine import (
+    DefaultTrainer,
+    default_argument_parser,
+    default_setup,
+    launch,
+)
+from detectron2.evaluation import (
+    COCOEvaluator,
+    PascalVOCDetectionEvaluator,
+    CityscapesInstanceEvaluator,
+)
 from detectron2.layers import get_norm
 from detectron2.modeling.roi_heads import ROI_HEADS_REGISTRY, Res5ROIHeads
 
 from detectron2.data.datasets import register_coco_instances
-register_coco_instances("coco_2017_train_0.1", {}, "datasets/coco/annotations/instances_train2017_0.1.json", "datasets/coco/train2017")
+
+register_coco_instances(
+    "coco_2017_train_0.1",
+    {},
+    "datasets/coco/annotations/instances_train2017_0.1.json",
+    "datasets/coco/train2017",
+)
+
 
 @ROI_HEADS_REGISTRY.register()
 class Res5ROIHeadsExtraNorm(Res5ROIHeads):
@@ -29,7 +45,6 @@ class Res5ROIHeadsExtraNorm(Res5ROIHeads):
 
 
 class Trainer(DefaultTrainer):
-
     @classmethod
     def build_evaluator(cls, cfg, dataset_name, output_folder=None):
         if output_folder is None:
@@ -37,9 +52,9 @@ class Trainer(DefaultTrainer):
         if "coco" in dataset_name:
             return COCOEvaluator(dataset_name, cfg, True, output_folder)
         elif "cityscapes" in dataset_name:
-            #assert (
-            #torch.cuda.device_count() >= comm.get_rank()
-            #), "CityscapesEvaluator currently do not work with multiple machines."
+            # assert (
+            # torch.cuda.device_count() >= comm.get_rank()
+            # ), "CityscapesEvaluator currently do not work with multiple machines."
             return CityscapesInstanceEvaluator(dataset_name)
         else:
             assert "voc" in dataset_name
@@ -60,9 +75,9 @@ def main(args):
 
     if args.eval_only:
         model = Trainer.build_model(cfg)
-        DetectionCheckpointer(
-            model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
-                cfg.MODEL.WEIGHTS, resume=args.resume)
+        DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
+            cfg.MODEL.WEIGHTS, resume=args.resume
+        )
         res = Trainer.test(cfg, model)
         return res
 
@@ -80,5 +95,5 @@ if __name__ == "__main__":
         num_machines=args.num_machines,
         machine_rank=args.machine_rank,
         dist_url=args.dist_url,
-        args=(args, ),
+        args=(args,),
     )

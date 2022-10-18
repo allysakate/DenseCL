@@ -24,7 +24,7 @@ for feat in $FEAT_LIST; do
             --costs_list $costs \
             --output_path $WORK_DIR/svm/voc07_${feat}
     fi
-    
+
     # test svm
     if $TEST_SVM_FLAG; then
         echo "testing svm ..."

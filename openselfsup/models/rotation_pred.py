@@ -35,9 +35,9 @@ class RotationPred(nn.Module):
                 Default: None.
         """
         if pretrained is not None:
-            print_log('load model from: {}'.format(pretrained), logger='root')
+            print_log("load model from: {}".format(pretrained), logger="root")
         self.backbone.init_weights(pretrained=pretrained)
-        self.head.init_weights(init_linear='kaiming')
+        self.head.init_weights(init_linear="kaiming")
 
     def forward_backbone(self, img):
         """Forward backbone.
@@ -73,22 +73,22 @@ class RotationPred(nn.Module):
     def forward_test(self, img, **kwargs):
         x = self.forward_backbone(img)  # tuple
         outs = self.head(x)
-        keys = ['head{}'.format(i) for i in range(len(outs))]
+        keys = ["head{}".format(i) for i in range(len(outs))]
         out_tensors = [out.cpu() for out in outs]  # NxC
         return dict(zip(keys, out_tensors))
 
-    def forward(self, img, rot_label=None, mode='train', **kwargs):
+    def forward(self, img, rot_label=None, mode="train", **kwargs):
         if mode != "extract" and img.dim() == 5:  # Nx4xCxHxW
             assert rot_label.dim() == 2  # Nx4
             img = img.view(
-                img.size(0) * img.size(1), img.size(2), img.size(3),
-                img.size(4))  # (4N)xCxHxW
+                img.size(0) * img.size(1), img.size(2), img.size(3), img.size(4)
+            )  # (4N)xCxHxW
             rot_label = torch.flatten(rot_label)  # (4N)
-        if mode == 'train':
+        if mode == "train":
             return self.forward_train(img, rot_label, **kwargs)
-        elif mode == 'test':
+        elif mode == "test":
             return self.forward_test(img, **kwargs)
-        elif mode == 'extract':
+        elif mode == "extract":
             return self.forward_backbone(img)
         else:
             raise Exception("No such mode: {}".format(mode))

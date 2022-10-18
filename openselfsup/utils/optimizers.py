@@ -29,27 +29,33 @@ class LARS(Optimizer):
         >>> optimizer.step()
     """
 
-    def __init__(self,
-                 params,
-                 lr=required,
-                 momentum=0,
-                 dampening=0,
-                 weight_decay=0,
-                 eta=0.001,
-                 nesterov=False):
+    def __init__(
+        self,
+        params,
+        lr=required,
+        momentum=0,
+        dampening=0,
+        weight_decay=0,
+        eta=0.001,
+        nesterov=False,
+    ):
         if lr is not required and lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
             raise ValueError("Invalid momentum value: {}".format(momentum))
         if weight_decay < 0.0:
-            raise ValueError(
-                "Invalid weight_decay value: {}".format(weight_decay))
+            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
         if eta < 0.0:
             raise ValueError("Invalid LARS coefficient value: {}".format(eta))
 
         defaults = dict(
-            lr=lr, momentum=momentum, dampening=dampening,
-            weight_decay=weight_decay, nesterov=nesterov, eta=eta)
+            lr=lr,
+            momentum=momentum,
+            dampening=dampening,
+            weight_decay=weight_decay,
+            nesterov=nesterov,
+            eta=eta,
+        )
         if nesterov and (momentum <= 0 or dampening != 0):
             raise ValueError("Nesterov momentum requires a momentum and zero dampening")
 
@@ -58,7 +64,7 @@ class LARS(Optimizer):
     def __setstate__(self, state):
         super(LARS, self).__setstate__(state)
         for group in self.param_groups:
-            group.setdefault('nesterov', False)
+            group.setdefault("nesterov", False)
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -74,38 +80,38 @@ class LARS(Optimizer):
                 loss = closure()
 
         for group in self.param_groups:
-            weight_decay = group['weight_decay']
-            momentum = group['momentum']
-            dampening = group['dampening']
-            eta = group['eta']
-            nesterov = group['nesterov']
-            lr = group['lr']
-            lars_exclude = group.get('lars_exclude', False)
+            weight_decay = group["weight_decay"]
+            momentum = group["momentum"]
+            dampening = group["dampening"]
+            eta = group["eta"]
+            nesterov = group["nesterov"]
+            lr = group["lr"]
+            lars_exclude = group.get("lars_exclude", False)
 
-            for p in group['params']:
+            for p in group["params"]:
                 if p.grad is None:
                     continue
 
                 d_p = p.grad
 
                 if lars_exclude:
-                    local_lr = 1.
+                    local_lr = 1.0
                 else:
                     weight_norm = torch.norm(p).item()
                     grad_norm = torch.norm(d_p).item()
                     # Compute local learning rate for this layer
-                    local_lr = eta * weight_norm / \
-                        (grad_norm + weight_decay * weight_norm)
+                    local_lr = (
+                        eta * weight_norm / (grad_norm + weight_decay * weight_norm)
+                    )
 
                 actual_lr = local_lr * lr
                 d_p = d_p.add(p, alpha=weight_decay).mul(actual_lr)
                 if momentum != 0:
                     param_state = self.state[p]
-                    if 'momentum_buffer' not in param_state:
-                        buf = param_state['momentum_buffer'] = \
-                                torch.clone(d_p).detach()
+                    if "momentum_buffer" not in param_state:
+                        buf = param_state["momentum_buffer"] = torch.clone(d_p).detach()
                     else:
-                        buf = param_state['momentum_buffer']
+                        buf = param_state["momentum_buffer"]
                         buf.mul_(momentum).add_(d_p, alpha=1 - dampening)
                     if nesterov:
                         d_p = d_p.add(buf, alpha=momentum)

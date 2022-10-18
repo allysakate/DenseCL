@@ -20,11 +20,7 @@ class Classification(nn.Module):
         pretrained (str, optional): Path to pre-trained weights. Default: None.
     """
 
-    def __init__(self,
-                 backbone,
-                 with_sobel=False,
-                 head=None,
-                 pretrained=None):
+    def __init__(self, backbone, with_sobel=False, head=None, pretrained=None):
         super(Classification, self).__init__()
         self.with_sobel = with_sobel
         if with_sobel:
@@ -42,7 +38,7 @@ class Classification(nn.Module):
                 Default: None.
         """
         if pretrained is not None:
-            print_log('load model from: {}'.format(pretrained), logger='root')
+            print_log("load model from: {}".format(pretrained), logger="root")
         self.backbone.init_weights(pretrained=pretrained)
         self.head.init_weights()
 
@@ -82,22 +78,21 @@ class Classification(nn.Module):
     def forward_test(self, img, **kwargs):
         x = self.forward_backbone(img)  # tuple
         outs = self.head(x)
-        keys = ['head{}'.format(i) for i in range(len(outs))]
+        keys = ["head{}".format(i) for i in range(len(outs))]
         out_tensors = [out.cpu() for out in outs]  # NxC
         return dict(zip(keys, out_tensors))
 
     def aug_test(self, imgs):
-        raise NotImplemented
-        outs = np.mean([self.head(x) for x in self.forward_backbone(imgs)],
-                       axis=0)
+        raise NotImplementedError
+        outs = np.mean([self.head(x) for x in self.forward_backbone(imgs)], axis=0)
         return outs
 
-    def forward(self, img, mode='train', **kwargs):
-        if mode == 'train':
+    def forward(self, img, mode="train", **kwargs):
+        if mode == "train":
             return self.forward_train(img, **kwargs)
-        elif mode == 'test':
+        elif mode == "test":
             return self.forward_test(img, **kwargs)
-        elif mode == 'extract':
+        elif mode == "extract":
             return self.forward_backbone(img)
         else:
             raise Exception("No such mode: {}".format(mode))

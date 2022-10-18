@@ -1,7 +1,7 @@
 from torch import nn
 
 from openselfsup.utils import build_from_cfg
-from .registry import (BACKBONES, MODELS, NECKS, HEADS, MEMORIES, LOSSES)
+from .registry import BACKBONES, MODELS, NECKS, HEADS, MEMORIES, LOSSES
 
 
 def build(cfg, registry, default_args=None):
@@ -18,9 +18,7 @@ def build(cfg, registry, default_args=None):
         nn.Module: A built nn module.
     """
     if isinstance(cfg, list):
-        modules = [
-            build_from_cfg(cfg_, registry, default_args) for cfg_ in cfg
-        ]
+        modules = [build_from_cfg(cfg_, registry, default_args) for cfg_ in cfg]
         return nn.Sequential(*modules)
     else:
         return build_from_cfg(cfg, registry, default_args)

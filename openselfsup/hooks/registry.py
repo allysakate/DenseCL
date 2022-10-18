@@ -1,3 +1,3 @@
 from openselfsup.utils import Registry
 
-HOOKS = Registry('hook')
+HOOKS = Registry("hook")

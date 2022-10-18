@@ -23,21 +23,26 @@ class ImageNetLMDB(data.Dataset):
         db_path = osp.join(root, list_file)
         self.db_path = db_path
         self.env = None
-        if 'train' in self.db_path:
+        if "train" in self.db_path:
             self.length = 1281167
-        elif 'val' in self.db_path:
+        elif "val" in self.db_path:
             self.length = 50000
         else:
             raise NotImplementedError
         self.ignore_label = ignore_label
 
     def _init_db(self):
-        self.env = lmdb.open(self.db_path, subdir=osp.isdir(self.db_path),
-                             readonly=True, lock=False,
-                             readahead=False, meminit=False)
+        self.env = lmdb.open(
+            self.db_path,
+            subdir=osp.isdir(self.db_path),
+            readonly=True,
+            lock=False,
+            readahead=False,
+            meminit=False,
+        )
         with self.env.begin(write=False) as txn:
-            self.length = loads_pyarrow(txn.get(b'__len__'))
-            self.keys = loads_pyarrow(txn.get(b'__keys__'))
+            self.length = loads_pyarrow(txn.get(b"__len__"))
+            self.keys = loads_pyarrow(txn.get(b"__keys__"))
 
     def __getitem__(self, index):
         # Delay loading LMDB data until after initialization: https://github.com/chainer/chainermn/issues/129
@@ -54,7 +59,7 @@ class ImageNetLMDB(data.Dataset):
         buf = six.BytesIO()
         buf.write(imgbuf)
         buf.seek(0)
-        img = Image.open(buf).convert('RGB')
+        img = Image.open(buf).convert("RGB")
         # load label.
         target = unpacked[1]
 
@@ -67,7 +72,7 @@ class ImageNetLMDB(data.Dataset):
         return self.length
 
     def __repr__(self):
-        return self.__class__.__name__ + ' (' + self.db_path + ')'
+        return self.__class__.__name__ + " (" + self.db_path + ")"
 
     def get_length(self):
         return self.length

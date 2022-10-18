@@ -30,8 +30,7 @@ def nondist_forward_collect(func, data_loader, length):
 
     results_all = {}
     for k in results[0].keys():
-        results_all[k] = np.concatenate(
-            [batch[k].numpy() for batch in results], axis=0)
+        results_all[k] = np.concatenate([batch[k].numpy() for batch in results], axis=0)
         assert results_all[k].shape[0] == length
     return results_all
 
@@ -66,17 +65,16 @@ def dist_forward_collect(func, data_loader, rank, length, ret_rank=-1):
 
     results_all = {}
     for k in results[0].keys():
-        results_cat = np.concatenate([batch[k].numpy() for batch in results],
-                                     axis=0)
+        results_cat = np.concatenate([batch[k].numpy() for batch in results], axis=0)
         if ret_rank == -1:
             results_gathered = gather_tensors_batch(results_cat, part_size=20)
             results_strip = np.concatenate(results_gathered, axis=0)[:length]
         else:
             results_gathered = gather_tensors_batch(
-                results_cat, part_size=20, ret_rank=ret_rank)
+                results_cat, part_size=20, ret_rank=ret_rank
+            )
             if rank == ret_rank:
-                results_strip = np.concatenate(
-                    results_gathered, axis=0)[:length]
+                results_strip = np.concatenate(results_gathered, axis=0)[:length]
             else:
                 results_strip = None
         results_all[k] = results_strip

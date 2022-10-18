@@ -24,20 +24,25 @@ class CocoLMDB(data.Dataset):
         db_path = osp.join(root, list_file)
         self.db_path = db_path
         self.env = None
-        if 'train2017' in self.db_path:
+        if "train2017" in self.db_path:
             self.length = 118287
-        elif 'val2017' in self.db_path:
+        elif "val2017" in self.db_path:
             self.length = 5000
         else:
             raise NotImplementedError
 
     def _init_db(self):
-        self.env = lmdb.open(self.db_path, subdir=osp.isdir(self.db_path),
-                             readonly=True, lock=False,
-                             readahead=False, meminit=False)
+        self.env = lmdb.open(
+            self.db_path,
+            subdir=osp.isdir(self.db_path),
+            readonly=True,
+            lock=False,
+            readahead=False,
+            meminit=False,
+        )
         with self.env.begin(write=False) as txn:
-            self.length = loads_pyarrow(txn.get(b'__len__'))
-            self.keys = loads_pyarrow(txn.get(b'__keys__'))
+            self.length = loads_pyarrow(txn.get(b"__len__"))
+            self.keys = loads_pyarrow(txn.get(b"__keys__"))
 
     def __getitem__(self, index):
         # Delay loading LMDB data until after initialization: https://github.com/chainer/chainermn/issues/129
@@ -54,7 +59,7 @@ class CocoLMDB(data.Dataset):
         buf = six.BytesIO()
         buf.write(imgbuf)
         buf.seek(0)
-        img = Image.open(buf).convert('RGB')
+        img = Image.open(buf).convert("RGB")
 
         return img
 
@@ -62,7 +67,7 @@ class CocoLMDB(data.Dataset):
         return self.length
 
     def __repr__(self):
-        return self.__class__.__name__ + ' (' + self.db_path + ')'
+        return self.__class__.__name__ + " (" + self.db_path + ")"
 
     def get_length(self):
         return self.length

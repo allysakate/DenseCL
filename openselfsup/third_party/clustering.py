@@ -5,8 +5,9 @@ import time
 import numpy as np
 import faiss
 import torch
+from scipy.sparse import csr_matrix
 
-__all__ = ['Kmeans', 'PIC']
+__all__ = ["Kmeans", "PIC"]
 
 
 def preprocess_features(npdata, pca):
@@ -18,7 +19,7 @@ def preprocess_features(npdata, pca):
         np.array of dim N * pca: data PCA-reduced, whitened and L2-normalized
     """
     _, ndim = npdata.shape
-    #npdata =  npdata.astype('float32')
+    # npdata =  npdata.astype('float32')
     assert npdata.dtype == np.float32
 
     if np.any(np.isnan(npdata)):
@@ -33,10 +34,10 @@ def preprocess_features(npdata, pca):
         percent = np.isnan(npdata).sum().item() / float(np.size(npdata)) * 100
         if percent > 0.1:
             raise Exception(
-                "More than 0.1% nan occurs after pca, percent: {}%".format(
-                    percent))
+                "More than 0.1% nan occurs after pca, percent: {}%".format(percent)
+            )
         else:
-            npdata[np.isnan(npdata)] = 0.
+            npdata[np.isnan(npdata)] = 0.0
     # L2 normalization
     row_sums = np.linalg.norm(npdata, axis=1)
 
@@ -99,7 +100,7 @@ def run_kmeans(x, nmb_clusters, verbose=False):
     _, I = index.search(x, 1)
     losses = faiss.vector_to_array(clus.obj)
     if verbose:
-        print('k-means loss evolution: {0}'.format(losses))
+        print("k-means loss evolution: {0}".format(losses))
 
     return [int(n[0]) for n in I], losses[-1]
 
@@ -115,15 +116,14 @@ def arrange_clustering(images_lists):
 
 
 class Kmeans:
-
     def __init__(self, k, pca_dim=256):
         self.k = k
         self.pca_dim = pca_dim
 
     def cluster(self, feat, verbose=False):
         """Performs k-means clustering.
-            Args:
-                x_data (np.array N * dim): data to cluster
+        Args:
+            x_data (np.array N * dim): data to cluster
         """
         end = time.time()
 
@@ -134,7 +134,7 @@ class Kmeans:
         I, loss = run_kmeans(xb, self.k, verbose)
         self.labels = np.array(I)
         if verbose:
-            print('k-means time: {0:.0f} s'.format(time.time() - end))
+            print("k-means time: {0:.0f} s".format(time.time() - end))
 
         return loss
 
@@ -170,21 +170,21 @@ def run_pic(I, D, sigma, alpha):
     """Run PIC algorithm"""
     a = make_adjacencyW(I, D, sigma)
     graph = a + a.transpose()
-    cgraph = graph
+    # cgraph = graph
     nim = graph.shape[0]
 
     W = graph
-    t0 = time.time()
+    # t0 = time.time()
 
     v0 = np.ones(nim) / nim
 
     # power iterations
-    v = v0.astype('float32')
+    v = v0.astype("float32")
 
-    t0 = time.time()
-    dt = 0
+    # t0 = time.time()
+    # dt = 0
     for i in range(200):
-        vnext = np.zeros(nim, dtype='float32')
+        vnext = np.zeros(nim, dtype="float32")
 
         vnext = vnext + W.transpose().dot(v)
 
@@ -193,7 +193,7 @@ def run_pic(I, D, sigma, alpha):
         vnext /= vnext.sum()
         v = vnext
 
-        if (i == 200 - 1):
+        if i == 200 - 1:
             clust = find_maxima_cluster(W, v)
 
     return [int(i) for i in clust]
@@ -201,7 +201,7 @@ def run_pic(I, D, sigma, alpha):
 
 def find_maxima_cluster(W, v):
     n, m = W.shape
-    assert (n == m)
+    assert n == m
     assign = np.zeros(n)
     # for each node
     pointers = list(range(n))
@@ -228,33 +228,35 @@ def find_maxima_cluster(W, v):
             current_node = pointers[current_node]
 
         assign[i] = cluster_ids[current_node]
-        assert (assign[i] >= 0)
+        assert assign[i] >= 0
     return assign
 
 
-class PIC():
+class PIC:
     """Class to perform Power Iteration Clustering on a graph of nearest neighbors.
-        Args:
-            args: for consistency with k-means init
-            sigma (float): bandwith of the Gaussian kernel (default 0.2)
-            nnn (int): number of nearest neighbors (default 5)
-            alpha (float): parameter in PIC (default 0.001)
-            distribute_singletons (bool): If True, reassign each singleton to
-                                      the cluster of its closest non
-                                      singleton nearest neighbors (up to nnn
-                                      nearest neighbors).
-        Attributes:
-            images_lists (list of list): for each cluster, the list of image indexes
-                                         belonging to this cluster
+    Args:
+        args: for consistency with k-means init
+        sigma (float): bandwith of the Gaussian kernel (default 0.2)
+        nnn (int): number of nearest neighbors (default 5)
+        alpha (float): parameter in PIC (default 0.001)
+        distribute_singletons (bool): If True, reassign each singleton to
+                                  the cluster of its closest non
+                                  singleton nearest neighbors (up to nnn
+                                  nearest neighbors).
+    Attributes:
+        images_lists (list of list): for each cluster, the list of image indexes
+                                     belonging to this cluster
     """
 
-    def __init__(self,
-                 args=None,
-                 sigma=0.2,
-                 nnn=5,
-                 alpha=0.001,
-                 distribute_singletons=True,
-                 pca_dim=256):
+    def __init__(
+        self,
+        args=None,
+        sigma=0.2,
+        nnn=5,
+        alpha=0.001,
+        distribute_singletons=True,
+        pca_dim=256,
+    ):
         self.sigma = sigma
         self.alpha = alpha
         self.nnn = nnn
@@ -297,12 +299,12 @@ class PIC():
                 images_lists[clust[s]].append(s)
 
         self.images_lists = []
-        self.labels = -1 * np.ones((data.shape[0], ), dtype=np.int)
+        self.labels = -1 * np.ones((data.shape[0],), dtype=np.int)
         for i, c in enumerate(images_lists):
             self.images_lists.append(images_lists[c])
             self.labels[images_lists[c]] = i
         assert np.all(self.labels != -1)
 
         if verbose:
-            print('pic time: {0:.0f} s'.format(time.time() - end))
+            print("pic time: {0:.0f} s".format(time.time() - end))
         return 0

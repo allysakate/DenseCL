@@ -4,8 +4,7 @@ from .base import BaseDataset
 
 @DATASETS.register_module
 class ExtractDataset(BaseDataset):
-    """Dataset for feature extraction.
-    """
+    """Dataset for feature extraction."""
 
     def __init__(self, data_source, pipeline):
         super(ExtractDataset, self).__init__(data_source, pipeline)
@@ -16,4 +15,4 @@ class ExtractDataset(BaseDataset):
         return dict(img=img)
 
     def evaluate(self, scores, keyword, logger=None):
-        raise NotImplemented
+        raise NotImplementedError

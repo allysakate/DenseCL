@@ -11,8 +11,7 @@ from .builder import build_datasource
 
 @DATASETS.register_module
 class BYOLDataset(Dataset):
-    """Dataset for BYOL.
-    """
+    """Dataset for BYOL."""
 
     def __init__(self, data_source, pipeline1, pipeline2):
         self.data_source = build_datasource(data_source)
@@ -32,4 +31,4 @@ class BYOLDataset(Dataset):
         return dict(img=img_cat)
 
     def evaluate(self, scores, keyword, logger=None, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError

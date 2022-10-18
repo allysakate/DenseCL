@@ -9,26 +9,30 @@ from .registry import MODELS
 
 @MODELS.register_module
 class DenseCL(nn.Module):
-    '''DenseCL.
+    """DenseCL.
     Part of the code is borrowed from:
         "https://github.com/facebookresearch/moco/blob/master/moco/builder.py".
-    '''
+    """
 
-    def __init__(self,
-                 backbone,
-                 neck=None,
-                 head=None,
-                 pretrained=None,
-                 queue_len=65536,
-                 feat_dim=128,
-                 momentum=0.999,
-                 loss_lambda=0.5,
-                 **kwargs):
+    def __init__(
+        self,
+        backbone,
+        neck=None,
+        head=None,
+        pretrained=None,
+        queue_len=65536,
+        feat_dim=128,
+        momentum=0.999,
+        loss_lambda=0.5,
+        **kwargs
+    ):
         super(DenseCL, self).__init__()
         self.encoder_q = nn.Sequential(
-            builder.build_backbone(backbone), builder.build_neck(neck))
+            builder.build_backbone(backbone), builder.build_neck(neck)
+        )
         self.encoder_k = nn.Sequential(
-            builder.build_backbone(backbone), builder.build_neck(neck))
+            builder.build_backbone(backbone), builder.build_neck(neck)
+        )
         self.backbone = self.encoder_q[0]
         for param in self.encoder_k.parameters():
             param.requires_grad = False
@@ -50,11 +54,12 @@ class DenseCL(nn.Module):
 
     def init_weights(self, pretrained=None):
         if pretrained is not None:
-            print_log('load model from: {}'.format(pretrained), logger='root')
+            print_log("load model from: {}".format(pretrained), logger="root")
         self.encoder_q[0].init_weights(pretrained=pretrained)
-        self.encoder_q[1].init_weights(init_linear='kaiming')
-        for param_q, param_k in zip(self.encoder_q.parameters(),
-                                    self.encoder_k.parameters()):
+        self.encoder_q[1].init_weights(init_linear="kaiming")
+        for param_q, param_k in zip(
+            self.encoder_q.parameters(), self.encoder_k.parameters()
+        ):
             param_k.data.copy_(param_q.data)
 
     @torch.no_grad()
@@ -62,10 +67,12 @@ class DenseCL(nn.Module):
         """
         Momentum update of the key encoder
         """
-        for param_q, param_k in zip(self.encoder_q.parameters(),
-                                    self.encoder_k.parameters()):
-            param_k.data = param_k.data * self.momentum + \
-                           param_q.data * (1. - self.momentum)
+        for param_q, param_k in zip(
+            self.encoder_q.parameters(), self.encoder_k.parameters()
+        ):
+            param_k.data = param_k.data * self.momentum + param_q.data * (
+                1.0 - self.momentum
+            )
 
     @torch.no_grad()
     def _dequeue_and_enqueue(self, keys):
@@ -78,7 +85,7 @@ class DenseCL(nn.Module):
         assert self.queue_len % batch_size == 0  # for simplicity
 
         # replace the keys at ptr (dequeue and enqueue)
-        self.queue[:, ptr:ptr + batch_size] = keys.transpose(0, 1)
+        self.queue[:, ptr : ptr + batch_size] = keys.transpose(0, 1)
         ptr = (ptr + batch_size) % self.queue_len  # move pointer
 
         self.queue_ptr[0] = ptr
@@ -94,7 +101,7 @@ class DenseCL(nn.Module):
         assert self.queue_len % batch_size == 0  # for simplicity
 
         # replace the keys at ptr (dequeue and enqueue)
-        self.queue2[:, ptr:ptr + batch_size] = keys.transpose(0, 1)
+        self.queue2[:, ptr : ptr + batch_size] = keys.transpose(0, 1)
         ptr = (ptr + batch_size) % self.queue_len  # move pointer
 
         self.queue2_ptr[0] = ptr
@@ -147,12 +154,11 @@ class DenseCL(nn.Module):
         return x_gather[idx_this]
 
     def forward_train(self, img, **kwargs):
-        assert img.dim() == 5, \
-            "Input must have 5 dims, got: {}".format(img.dim())
+        assert img.dim() == 5, "Input must have 5 dims, got: {}".format(img.dim())
         im_q = img[:, 0, ...].contiguous()
         im_k = img[:, 1, ...].contiguous()
         # compute query features
-        q_b = self.encoder_q[0](im_q) # backbone features
+        q_b = self.encoder_q[0](im_q)  # backbone features
         q, q_grid, q2 = self.encoder_q[1](q_b)  # queries: NxC; NxCxS^2
         q_b = q_b[0]
         q_b = q_b.view(q_b.size(0), q_b.size(1), -1)
@@ -188,30 +194,31 @@ class DenseCL(nn.Module):
         # compute logits
         # Einstein sum is more intuitive
         # positive logits: Nx1
-        l_pos = torch.einsum('nc,nc->n', [q, k]).unsqueeze(-1)
+        l_pos = torch.einsum("nc,nc->n", [q, k]).unsqueeze(-1)
         # negative logits: NxK
-        l_neg = torch.einsum('nc,ck->nk', [q, self.queue.clone().detach()])
+        l_neg = torch.einsum("nc,ck->nk", [q, self.queue.clone().detach()])
 
         # feat point set sim
         backbone_sim_matrix = torch.matmul(q_b.permute(0, 2, 1), k_b)
-        densecl_sim_ind = backbone_sim_matrix.max(dim=2)[1] # NxS^2
+        densecl_sim_ind = backbone_sim_matrix.max(dim=2)[1]  # NxS^2
 
-        indexed_k_grid = torch.gather(k_grid, 2, densecl_sim_ind.unsqueeze(1).expand(-1, k_grid.size(1), -1)) # NxCxS^2
-        densecl_sim_q = (q_grid * indexed_k_grid).sum(1) # NxS^2
+        indexed_k_grid = torch.gather(
+            k_grid, 2, densecl_sim_ind.unsqueeze(1).expand(-1, k_grid.size(1), -1)
+        )  # NxCxS^2
+        densecl_sim_q = (q_grid * indexed_k_grid).sum(1)  # NxS^2
 
-        l_pos_dense = densecl_sim_q.view(-1).unsqueeze(-1) # NS^2X1
+        l_pos_dense = densecl_sim_q.view(-1).unsqueeze(-1)  # NS^2X1
 
         q_grid = q_grid.permute(0, 2, 1)
         q_grid = q_grid.reshape(-1, q_grid.size(2))
-        l_neg_dense = torch.einsum('nc,ck->nk', [q_grid,
-                                            self.queue2.clone().detach()])
+        l_neg_dense = torch.einsum("nc,ck->nk", [q_grid, self.queue2.clone().detach()])
 
-        loss_single = self.head(l_pos, l_neg)['loss_contra']
-        loss_dense = self.head(l_pos_dense, l_neg_dense)['loss_contra']
+        loss_single = self.head(l_pos, l_neg)["loss_contra"]
+        loss_dense = self.head(l_pos_dense, l_neg_dense)["loss_contra"]
 
         losses = dict()
-        losses['loss_contra_single'] = loss_single * (1 - self.loss_lambda)
-        losses['loss_contra_dense'] = loss_dense * self.loss_lambda
+        losses["loss_contra_single"] = loss_single * (1 - self.loss_lambda)
+        losses["loss_contra_dense"] = loss_dense * self.loss_lambda
 
         self._dequeue_and_enqueue(k)
         self._dequeue_and_enqueue2(k2)
@@ -221,18 +228,18 @@ class DenseCL(nn.Module):
     def forward_test(self, img, **kwargs):
         im_q = img.contiguous()
         # compute query features
-        #_, q_grid, _ = self.encoder_q(im_q)
+        # _, q_grid, _ = self.encoder_q(im_q)
         q_grid = self.backbone(im_q)[0]
         q_grid = q_grid.view(q_grid.size(0), q_grid.size(1), -1)
         q_grid = nn.functional.normalize(q_grid, dim=1)
         return None, q_grid, None
 
-    def forward(self, img, mode='train', **kwargs):
-        if mode == 'train':
+    def forward(self, img, mode="train", **kwargs):
+        if mode == "train":
             return self.forward_train(img, **kwargs)
-        elif mode == 'test':
+        elif mode == "test":
             return self.forward_test(img, **kwargs)
-        elif mode == 'extract':
+        elif mode == "extract":
             return self.backbone(img)
         else:
             raise Exception("No such mode: {}".format(mode))
@@ -246,8 +253,7 @@ def concat_all_gather(tensor):
     *** Warning ***: torch.distributed.all_gather has no gradient.
     """
     tensors_gather = [
-        torch.ones_like(tensor)
-        for _ in range(torch.distributed.get_world_size())
+        torch.ones_like(tensor) for _ in range(torch.distributed.get_world_size())
     ]
     torch.distributed.all_gather(tensors_gather, tensor, async_op=False)
 

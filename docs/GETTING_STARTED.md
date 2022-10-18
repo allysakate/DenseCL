@@ -64,7 +64,7 @@ optimizer_config = dict(update_interval=4)
 ```
 
 ### Mixed Precision Training (Optional)
-We use [Apex](https://github.com/NVIDIA/apex) to implement Mixed Precision Training. 
+We use [Apex](https://github.com/NVIDIA/apex) to implement Mixed Precision Training.
 If you want to use Mixed Precision Training, you can add below in the config file.
 ```python
 use_fp16 = True
@@ -205,7 +205,7 @@ If you want to make your performance exactly reproducible, please switch on `--d
       iv) memory_bank (optional): define memory banks.
     3. Create a config file under `configs/` and setup the configs;
     4. [Optional] Create a hook file under `openselfsup/hooks/` if your method requires additional operations before run, every several iterations, every several epoch, or after run.
-    
+
 You may refer to existing modules under respective folders.
 
 #### Features that may facilitate your implementation

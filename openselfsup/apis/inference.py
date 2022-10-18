@@ -19,7 +19,7 @@ from openselfsup.datasets.registry import PIPELINES
 from torchvision.transforms import Compose
 
 
-def init_model(config, checkpoint=None, device='cuda:0'):
+def init_model(config, checkpoint=None, device="cuda:0"):
     """Initialize a model from config file.
     Args:
         config (str or :obj:`mmcv.Config`): Config file path or the config
@@ -32,8 +32,10 @@ def init_model(config, checkpoint=None, device='cuda:0'):
     if isinstance(config, str):
         config = mmcv.Config.fromfile(config)
     elif not isinstance(config, mmcv.Config):
-        raise TypeError('config must be a filename or Config object, '
-                        'but got {}'.format(type(config)))
+        raise TypeError(
+            "config must be a filename or Config object, "
+            "but got {}".format(type(config))
+        )
     config.model.pretrained = None
     model = build_model(config.model)
     if checkpoint is not None:
@@ -45,14 +47,13 @@ def init_model(config, checkpoint=None, device='cuda:0'):
 
 
 class LoadImage(object):
-
     def __call__(self, results):
-        if isinstance(results['img'], str):
-            results['filename'] = results['img']
+        if isinstance(results["img"], str):
+            results["filename"] = results["img"]
         else:
-            results['filename'] = None
-        img = Image.open(results['img'])
-        img = img.convert('RGB')
+            results["filename"] = None
+        img = Image.open(results["img"])
+        img = img.convert("RGB")
         return img
 
 
@@ -74,11 +75,10 @@ def inference_model(model, img):
     test_pipeline = Compose(test_pipeline)
     # prepare data
     img = Image.open(img)
-    img = img.convert('RGB')
+    img = img.convert("RGB")
     data = test_pipeline(img)
     data = scatter(collate([data], samples_per_gpu=1), [device])[0]
     # forward the model
     with torch.no_grad():
-        result = model(data, mode='test')
+        result = model(data, mode="test")
     return result
-

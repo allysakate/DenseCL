@@ -39,10 +39,10 @@ class RelativeLoc(nn.Module):
                 Default: None.
         """
         if pretrained is not None:
-            print_log('load model from: {}'.format(pretrained), logger='root')
+            print_log("load model from: {}".format(pretrained), logger="root")
         self.backbone.init_weights(pretrained=pretrained)
-        self.neck.init_weights(init_linear='normal')
-        self.head.init_weights(init_linear='normal', std=0.005)
+        self.neck.init_weights(init_linear="normal")
+        self.head.init_weights(init_linear="normal", std=0.005)
 
     def forward_backbone(self, img):
         """Forward backbone.
@@ -86,22 +86,22 @@ class RelativeLoc(nn.Module):
         x = (torch.cat((x1[0], x2[0]), dim=1),)
         x = self.neck(x)
         outs = self.head(x)
-        keys = ['head{}'.format(i) for i in range(len(outs))]
+        keys = ["head{}".format(i) for i in range(len(outs))]
         out_tensors = [out.cpu() for out in outs]
         return dict(zip(keys, out_tensors))
 
-    def forward(self, img, patch_label=None, mode='train', **kwargs):
+    def forward(self, img, patch_label=None, mode="train", **kwargs):
         if mode != "extract" and img.dim() == 5:  # Nx8x(2C)xHxW
             assert patch_label.dim() == 2  # Nx8
             img = img.view(
-                img.size(0) * img.size(1), img.size(2), img.size(3),
-                img.size(4))  # (8N)x(2C)xHxW
+                img.size(0) * img.size(1), img.size(2), img.size(3), img.size(4)
+            )  # (8N)x(2C)xHxW
             patch_label = torch.flatten(patch_label)  # (8N)
-        if mode == 'train':
+        if mode == "train":
             return self.forward_train(img, patch_label, **kwargs)
-        elif mode == 'test':
+        elif mode == "test":
             return self.forward_test(img, **kwargs)
-        elif mode == 'extract':
+        elif mode == "extract":
             return self.forward_backbone(img)
         else:
             raise Exception("No such mode: {}".format(mode))

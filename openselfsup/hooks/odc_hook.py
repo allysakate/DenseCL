@@ -21,17 +21,18 @@ class ODCHook(Hook):
         dist_mode (bool): Use distributed training or not. Default: True.
     """
 
-    def __init__(self,
-                 centroids_update_interval,
-                 deal_with_small_clusters_interval,
-                 evaluate_interval,
-                 reweight,
-                 reweight_pow,
-                 dist_mode=True):
+    def __init__(
+        self,
+        centroids_update_interval,
+        deal_with_small_clusters_interval,
+        evaluate_interval,
+        reweight,
+        reweight_pow,
+        dist_mode=True,
+    ):
         assert dist_mode, "non-dist mode is not implemented"
         self.centroids_update_interval = centroids_update_interval
-        self.deal_with_small_clusters_interval = \
-            deal_with_small_clusters_interval
+        self.deal_with_small_clusters_interval = deal_with_small_clusters_interval
         self.evaluate_interval = evaluate_interval
         self.reweight = reweight
         self.reweight_pow = reweight_pow
@@ -62,18 +63,20 @@ class ODCHook(Hook):
             if new_labels.is_cuda:
                 new_labels = new_labels.cpu()
             np.save(
-                "{}/cluster_epoch_{}.npy".format(runner.work_dir,
-                                                 runner.epoch),
-                new_labels.numpy())
+                "{}/cluster_epoch_{}.npy".format(runner.work_dir, runner.epoch),
+                new_labels.numpy(),
+            )
 
     def evaluate(self, runner, new_labels):
         hist = np.bincount(
-            new_labels, minlength=runner.model.module.memory_bank.num_classes)
+            new_labels, minlength=runner.model.module.memory_bank.num_classes
+        )
         empty_cls = (hist == 0).sum()
         minimal_cls_size, maximal_cls_size = hist.min(), hist.max()
         if runner.rank == 0:
             print_log(
                 "empty_num: {}\tmin_cluster: {}\tmax_cluster:{}".format(
-                    empty_cls.item(), minimal_cls_size.item(),
-                    maximal_cls_size.item()),
-                logger='root')
+                    empty_cls.item(), minimal_cls_size.item(), maximal_cls_size.item()
+                ),
+                logger="root",
+            )

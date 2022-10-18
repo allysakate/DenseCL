@@ -36,7 +36,7 @@ for feat in $FEAT_LIST; do
             done
         done
     fi
-    
+
     # test lowshot svm
     if $TEST_SVM_LOWSHOT_FLAG; then
         echo "testing svm low-shot ..."
@@ -51,7 +51,7 @@ for feat in $FEAT_LIST; do
             --sample_inds "0,1,2,3,4" \
             --dataset "voc"
     fi
-    
+
     # aggregate testing results
     if $AGGREGATE_FLAG; then
         echo "aggregating svm low-shot ..."

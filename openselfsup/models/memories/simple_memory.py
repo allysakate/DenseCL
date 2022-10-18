@@ -36,8 +36,7 @@ class SimpleMemory(nn.Module):
         feature_norm = nn.functional.normalize(feature)
         ind, feature_norm = self._gather(ind, feature_norm)
         feature_old = self.feature_bank[ind, ...]
-        feature_new = (1 - self.momentum) * feature_old + \
-            self.momentum * feature_norm
+        feature_new = (1 - self.momentum) * feature_old + self.momentum * feature_norm
         feature_new_norm = nn.functional.normalize(feature_new)
         self.feature_bank[ind, ...] = feature_new_norm
 
@@ -52,9 +51,7 @@ class SimpleMemory(nn.Module):
             Tensor: Gathered indices.
             Tensor: Gathered features.
         """
-        ind_gathered = [
-            torch.ones_like(ind).cuda() for _ in range(self.num_replicas)
-        ]
+        ind_gathered = [torch.ones_like(ind).cuda() for _ in range(self.num_replicas)]
         feature_gathered = [
             torch.ones_like(feature).cuda() for _ in range(self.num_replicas)
         ]

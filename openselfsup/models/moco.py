@@ -29,20 +29,24 @@ class MOCO(nn.Module):
             Default: 0.999.
     """
 
-    def __init__(self,
-                 backbone,
-                 neck=None,
-                 head=None,
-                 pretrained=None,
-                 queue_len=65536,
-                 feat_dim=128,
-                 momentum=0.999,
-                 **kwargs):
+    def __init__(
+        self,
+        backbone,
+        neck=None,
+        head=None,
+        pretrained=None,
+        queue_len=65536,
+        feat_dim=128,
+        momentum=0.999,
+        **kwargs
+    ):
         super(MOCO, self).__init__()
         self.encoder_q = nn.Sequential(
-            builder.build_backbone(backbone), builder.build_neck(neck))
+            builder.build_backbone(backbone), builder.build_neck(neck)
+        )
         self.encoder_k = nn.Sequential(
-            builder.build_backbone(backbone), builder.build_neck(neck))
+            builder.build_backbone(backbone), builder.build_neck(neck)
+        )
         self.backbone = self.encoder_q[0]
         for param in self.encoder_k.parameters():
             param.requires_grad = False
@@ -65,20 +69,23 @@ class MOCO(nn.Module):
                 Default: None.
         """
         if pretrained is not None:
-            print_log('load model from: {}'.format(pretrained), logger='root')
+            print_log("load model from: {}".format(pretrained), logger="root")
         self.encoder_q[0].init_weights(pretrained=pretrained)
-        self.encoder_q[1].init_weights(init_linear='kaiming')
-        for param_q, param_k in zip(self.encoder_q.parameters(),
-                                    self.encoder_k.parameters()):
+        self.encoder_q[1].init_weights(init_linear="kaiming")
+        for param_q, param_k in zip(
+            self.encoder_q.parameters(), self.encoder_k.parameters()
+        ):
             param_k.data.copy_(param_q.data)
 
     @torch.no_grad()
     def _momentum_update_key_encoder(self):
         """Momentum update of the key encoder."""
-        for param_q, param_k in zip(self.encoder_q.parameters(),
-                                    self.encoder_k.parameters()):
-            param_k.data = param_k.data * self.momentum + \
-                           param_q.data * (1. - self.momentum)
+        for param_q, param_k in zip(
+            self.encoder_q.parameters(), self.encoder_k.parameters()
+        ):
+            param_k.data = param_k.data * self.momentum + param_q.data * (
+                1.0 - self.momentum
+            )
 
     @torch.no_grad()
     def _dequeue_and_enqueue(self, keys):
@@ -92,7 +99,7 @@ class MOCO(nn.Module):
         assert self.queue_len % batch_size == 0  # for simplicity
 
         # replace the keys at ptr (dequeue and enqueue)
-        self.queue[:, ptr:ptr + batch_size] = keys.transpose(0, 1)
+        self.queue[:, ptr : ptr + batch_size] = keys.transpose(0, 1)
         ptr = (ptr + batch_size) % self.queue_len  # move pointer
 
         self.queue_ptr[0] = ptr
@@ -154,8 +161,7 @@ class MOCO(nn.Module):
         Returns:
             dict[str, Tensor]: A dictionary of loss components.
         """
-        assert img.dim() == 5, \
-            "Input must have 5 dims, got: {}".format(img.dim())
+        assert img.dim() == 5, "Input must have 5 dims, got: {}".format(img.dim())
         im_q = img[:, 0, ...].contiguous()
         im_k = img[:, 1, ...].contiguous()
         # compute query features
@@ -178,9 +184,9 @@ class MOCO(nn.Module):
         # compute logits
         # Einstein sum is more intuitive
         # positive logits: Nx1
-        l_pos = torch.einsum('nc,nc->n', [q, k]).unsqueeze(-1)
+        l_pos = torch.einsum("nc,nc->n", [q, k]).unsqueeze(-1)
         # negative logits: NxK
-        l_neg = torch.einsum('nc,ck->nk', [q, self.queue.clone().detach()])
+        l_neg = torch.einsum("nc,ck->nk", [q, self.queue.clone().detach()])
 
         losses = self.head(l_pos, l_neg)
         self._dequeue_and_enqueue(k)
@@ -190,12 +196,12 @@ class MOCO(nn.Module):
     def forward_test(self, img, **kwargs):
         pass
 
-    def forward(self, img, mode='train', **kwargs):
-        if mode == 'train':
+    def forward(self, img, mode="train", **kwargs):
+        if mode == "train":
             return self.forward_train(img, **kwargs)
-        elif mode == 'test':
+        elif mode == "test":
             return self.forward_test(img, **kwargs)
-        elif mode == 'extract':
+        elif mode == "extract":
             return self.backbone(img)
         else:
             raise Exception("No such mode: {}".format(mode))
@@ -209,8 +215,7 @@ def concat_all_gather(tensor):
     *** Warning ***: torch.distributed.all_gather has no gradient.
     """
     tensors_gather = [
-        torch.ones_like(tensor)
-        for _ in range(torch.distributed.get_world_size())
+        torch.ones_like(tensor) for _ in range(torch.distributed.get_world_size())
     ]
     torch.distributed.all_gather(tensors_gather, tensor, async_op=False)
 

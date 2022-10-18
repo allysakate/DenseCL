@@ -17,17 +17,23 @@ class BYOLHook(Hook):
             for the target network. Default: 1.
     """
 
-    def __init__(self, end_momentum=1., **kwargs):
+    def __init__(self, end_momentum=1.0, **kwargs):
         self.end_momentum = end_momentum
 
     def before_train_iter(self, runner):
-        assert hasattr(runner.model.module, 'momentum'), \
-            "The runner must have attribute \"momentum\" in BYOLHook."
-        assert hasattr(runner.model.module, 'base_momentum'), \
-            "The runner must have attribute \"base_momentum\" in BYOLHook."
+        assert hasattr(
+            runner.model.module, "momentum"
+        ), 'The runner must have attribute "momentum" in BYOLHook.'
+        assert hasattr(
+            runner.model.module, "base_momentum"
+        ), 'The runner must have attribute "base_momentum" in BYOLHook.'
         cur_iter = runner.iter
         max_iter = runner.max_iters
         base_m = runner.model.module.base_momentum
-        m = self.end_momentum - (self.end_momentum - base_m) * (
-            cos(pi * cur_iter / float(max_iter)) + 1) / 2
+        m = (
+            self.end_momentum
+            - (self.end_momentum - base_m)
+            * (cos(pi * cur_iter / float(max_iter)) + 1)
+            / 2
+        )
         runner.model.module.momentum = m
